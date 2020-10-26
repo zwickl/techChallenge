@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: requestquoteandpublish
+spec:
+      containers:
+      - name: requestquoteandpublish
+        image: python/requestquoteandpublish
+        imagePullPolicy: Never
