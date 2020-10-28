@@ -1,9 +1,19 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: requestquoteandpublish
+  name: subscribeandstore
 spec:
-      containers:
-      - name: requestquoteandpublish
-        image: python/requestquoteandpublish
-        imagePullPolicy: Never
+  restartPolicy: Never
+  containers:
+  - name: subscribeandstore
+    image: python/subscribeandstore
+    imagePullPolicy: Never
+    volumeMounts:
+    - mountPath: "/db"
+      name: db-pv-claim-0
+
+  volumes:
+  - name: db-pv-claim-0
+    persistentVolumeClaim:
+      claimName: db-pv-claim
+

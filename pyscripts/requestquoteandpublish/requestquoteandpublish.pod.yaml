@@ -7,3 +7,4 @@ spec:
       - name: requestquoteandpublish
         image: python/requestquoteandpublish
         imagePullPolicy: Never
+        restartPolicy: OnFailure

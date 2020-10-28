@@ -6,6 +6,7 @@ import aiodns
 from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
 
+
 def handle_exception(loop, context):
     # context["message"] will always be there; but context["exception"] may not
     msg = context.get("exception", context["message"])
@@ -13,7 +14,6 @@ def handle_exception(loop, context):
     #logging.error(f"Caught exception: {msg}")
     #logging.info("Shutting down...")
     asyncio.create_task(shutdown(loop))
-
 
 #some  of this adapted from
 #asyncio python-nats-io/basicUsage.py
@@ -67,8 +67,9 @@ async def run(loop):
         natsIP="127.0.0.1:4222"
 
     nc = NATS()
-    print("about to connect to nats at %s" % natsIP)
+    print("about to connect to nats")
     await nc.connect(natsIP, loop=loop)
+
 
     #after the subscription happens, this should just keep calling the message_handler every time a message comes in
     subject="quotes"
