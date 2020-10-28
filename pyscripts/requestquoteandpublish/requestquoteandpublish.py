@@ -5,8 +5,28 @@ import asyncio
 import aiohttp
 import socket
 import time
+import json
 from nats.aio.client import Client as NATS
 from nats.aio.errors import ErrConnectionClosed, ErrTimeout, ErrNoServers
+
+def get_nats_ip():
+    try:
+        natsIP=socket.gethostbyname('nats')
+        print("found nats service at %s" % natsIP)
+    except socket.gaierror as err:
+        print(err)
+        natsIP="127.0.0.1:4222"
+        print("could not find nats service, using address %s" % natsIP)
+    return natsIP
+
+def handle_exception(loop, context):
+    # context["message"] will always be there; but context["exception"] may not
+    msg = context.get("exception", context["message"])
+    print("Caught exception: %s" % msg)
+    #logging.error(f"Caught exception: {msg}")
+    #logging.info("Shutting down...")
+    asyncio.create_task(shutdown(loop))
+
 
 #some  of this adapted from
 #asyncio python-nats-io/basicUsage.py
@@ -27,7 +47,7 @@ with aiohttp.ClientSession(loop=loop) as session:
 loop.close()
 '''
 
-async def run(loop):
+async def run(natsIP, loop):
     async def getFriendsQuote(num=1):
         '''request quote from web service
            returns requests.response object '''
@@ -46,37 +66,30 @@ async def run(loop):
         #except Exception as err:
         #    raise SystemExit(err)
 
-    async def publishToNats(subject, content):
-        try:
-            natsIP=socket.gethostbyname('nats')
-            print("found nats service at %s" % natsIP)
-        except:
-            natsIP="127.0.0.1:4222"
-
-        nc = NATS()
-        await nc.connect(natsIP)
-
-        subject="quotes"
+    async def publishToNats(nc, subject, content):
         await nc.publish(subject, content)
-        
-        # Terminate connection to NATS.
-        await nc.close()
+
+    nc = NATS()
+    try:
+        print("connecting to nats")
+        await nc.connect(natsIP, loop=loop)
+    except ConnectionRefusedError as err:
+        print("could not connect to nats")
 
     while True :
+        time.sleep(5)
         response = await getFriendsQuote()
-        await asyncio.sleep(5)
         print(response)
-        await publishToNats("quotes", response.encode('utf-8'))
+        await publishToNats(nc, "quotes", response.encode())
         await asyncio.sleep(5)
-
 
 if __name__ == '__main__':
-    num_quotes = 10
+    #making the socket call to look up the service IP within the async loop
+    #caused problems, and I couldn't get the aiodns version to work
+    #right, so pass IP as arg to run()
+    natsIP = get_nats_ip()
     loop = asyncio.get_event_loop()
-    for q in range(num_quotes):
-        print("loop  %d" % q)
-        try:
-            loop.run_until_complete(run(loop))
-        except Exception as err:
-            raise SystemExit(err)
+    loop.set_exception_handler(handle_exception)
+    loop.run_until_complete(run(natsIP, loop))
+    loop.close()
 
